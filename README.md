@@ -86,5 +86,18 @@ Your browser should automatically open a new tab with the running application.
 8.  The extracted data will be displayed in a structured JSON format and is automatically saved to the `documents.db` file. A success animation will play!
 
 ## 📸 Screenshots
+## 📸 Screenshots
 
-*(This is where you can add your screenshots of the application in action.)*
+Here is a preview of the Intelligent Document Extraction Platform processing different document types:
+
+| **Aadhaar Card Extraction** | **Driving Licence Extraction** |
+| :---: | :---: |
+| ![Aadhaar Card Preview](SS_Aadhar.png) | ![Driving Licence Preview](SS_DL.png) |
+
+| **Passport Extraction** | **Invoice Processing** |
+| :---: | :---: |
+| ![Passport Preview](SS_Passport.png) | ![Invoice Preview](SS_Invoice.png) |
+
+| **Resume Parsing** |
+| :---: |
+| ![Resume Preview](SS_Resume.png) |
