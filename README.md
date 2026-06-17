@@ -86,7 +86,7 @@ Your browser should automatically open a new tab with the running application.
 8.  The extracted data will be displayed in a structured JSON format and is automatically saved to the `documents.db` file. A success animation will play!
 
 ## 📸 Screenshots
-## 📸 Screenshots
+
 
 Here is a preview of the Intelligent Document Extraction Platform processing different document types:
 
