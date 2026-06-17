@@ -1,5 +1,16 @@
+# --- Intelligent Document Extraction Dependencies ---
+
+# Web framework for the UI
 streamlit==1.32.0
+
+# OpenAI SDK for Gemini API integration
 openai==1.14.0
+
+# Data validation and schemas
 pydantic==2.6.4
+
+# Database ORM for SQLite
 sqlalchemy==2.0.29
+
+# PDF processing (fitz)
 pymupdf==1.24.1
