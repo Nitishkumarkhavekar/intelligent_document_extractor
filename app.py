@@ -60,8 +60,22 @@ def main():
     with st.sidebar:
         with st.container(border=True):
             st.header("⚙️ Configuration 🛠️")
-            api_key = st.text_input("Enter Gemini API Key", type="password", value="AQ.Ab8RN6KpGVaNvR6RQ3P00xOo6CHgDO5M2KORuCT6WAsAFT7QcQ")
-            st.markdown("[Get your Gemini API Key here](https://aistudio.google.com/app/apikey)")
+            # Securely load API key from st.secrets
+            if "GEMINI_API_KEY" in st.secrets:
+                api_key = st.secrets["GEMINI_API_KEY"]
+                st.success("✅ API Key loaded from secrets!")
+            else:
+                api_key = st.text_input("Enter Gemini API Key", type="password")
+                st.warning("""
+                **⚠️ API Key not found!**
+                
+                For local development, create a file at `.streamlit/secrets.toml` with your key:
+                ```toml
+                GEMINI_API_KEY = "YOUR_API_KEY_HERE"
+                ```
+                For deployment, add it to your Streamlit Cloud secrets.
+                """)
+            st.markdown("Generate a new Gemini API Key here")
             
         with st.container(border=True):
             st.header("📁 Document Details")
@@ -72,17 +86,19 @@ def main():
             
         with st.container(border=True):
             st.header("🧠 Model Settings")
-            available_models = get_available_models(api_key) if api_key else ["gemini-1.5-flash"]
+            # Only fetch models if an API key is available
+            available_models = get_available_models(api_key) if api_key else []
             default_index = 0
-            for i, m in enumerate(available_models):
-                if "gemini-1.5-flash" in m:
-                    default_index = i
-                    break
+            if available_models:
+                for i, m in enumerate(available_models):
+                    if "gemini-1.5-flash" in m:
+                        default_index = i
+                        break
             model_name = st.selectbox(
                 "Select Gemini Model",
                 available_models,
                 index=default_index,
-                help="Dynamically fetched models available for your API key."
+                help="Dynamically fetched models available for your API key. If empty, check your API key."
             )
 
     # Main area
