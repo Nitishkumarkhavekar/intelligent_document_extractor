@@ -202,27 +202,9 @@ class ExtractorFactory:
 
     "app.py": """import streamlit as st
 import json
-import os
-import base64
 from database import DatabaseManager
 from extractors import ExtractorFactory
 
-def set_background(image_path):
-    \"\"\"Sets a custom background image if it exists.\"\"\"
-    if os.path.exists(image_path):
-        with open(image_path, "rb") as img_file:
-            encoded_string = base64.b64encode(img_file.read()).decode()
-        css = f\"\"\"
-        <style>
-        .stApp {{
-            background-image: url("data:image/jpeg;base64,{encoded_string}");
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }}
-        </style>
-        \"\"\"
-        st.markdown(css, unsafe_allow_html=True)
 def set_custom_style():
     \"\"\"Applies a colorful and attractive custom CSS theme.\"\"\"
     css = \"\"\"
@@ -270,11 +252,6 @@ def get_available_models(api_key):
 def main():
     st.set_page_config(page_title="Intelligent Document Extraction", layout="wide", page_icon="🤖")
     
-    # Load the background image named "chatbot.jpg" or "chatbot.png"
-    if os.path.exists("chatbot.jpg"):
-        set_background("chatbot.jpg")
-    elif os.path.exists("chatbot.png"):
-        set_background("chatbot.png")
     # Apply the new attractive styling
     set_custom_style()
 
@@ -283,33 +260,24 @@ def main():
 
     # Sidebar for configuration
     with st.sidebar:
-        st.header("⚙️ Configuration 🛠️")
-        api_key = st.text_input("Enter Gemini API Key", type="password", value="AQ.Ab8RN6KpGVaNvR6RQ3P00xOo6CHgDO5M2KORuCT6WAsAFT7QcQ")
-        st.markdown("[Get your Gemini API Key here](https://aistudio.google.com/app/apikey)")
-        
-        st.header("📁 Document Details")
-        doc_type = st.selectbox(
-            "Select Document Type",
-            ["Aadhaar Card", "Driving Licence", "Passport", "Invoice", "Resume"]
-        )
-        
-        st.header("🧠 Model Settings")
-        available_models = get_available_models(api_key) if api_key else ["gemini-1.5-flash"]
-        default_index = 0
-        for i, m in enumerate(available_models):
-            if "gemini-1.5-flash" in m:
-                default_index = i
-                break
-        model_name = st.selectbox(
-            "Select Gemini Model",
-            available_models,
-            index=default_index,
-            help="Dynamically fetched models available for your API key."
-        )
         with st.container(border=True):
             st.header("⚙️ Configuration 🛠️")
-            api_key = st.text_input("Enter Gemini API Key", type="password", value="AQ.Ab8RN6KpGVaNvR6RQ3P00xOo6CHgDO5M2KORuCT6WAsAFT7QcQ")
-            st.markdown("[Get your Gemini API Key here](https://aistudio.google.com/app/apikey)")
+            # Securely load API key from st.secrets
+            if "GEMINI_API_KEY" in st.secrets:
+                api_key = st.secrets["GEMINI_API_KEY"]
+                st.success("✅ API Key loaded from secrets!")
+            else:
+                api_key = st.text_input("Enter Gemini API Key", type="password")
+                st.warning(\"\"\"
+                **⚠️ API Key not found!**
+                
+                For local development, create a file at `.streamlit/secrets.toml` with your key:
+                ```toml
+                GEMINI_API_KEY = "YOUR_API_KEY_HERE"
+                ```
+                For deployment, add it to your Streamlit Cloud secrets.
+                \"\"\")
+            st.markdown("Generate a new Gemini API Key here")
             
         with st.container(border=True):
             st.header("📁 Document Details")
@@ -320,24 +288,22 @@ def main():
             
         with st.container(border=True):
             st.header("🧠 Model Settings")
-            available_models = get_available_models(api_key) if api_key else ["gemini-1.5-flash"]
+            # Only fetch models if an API key is available
+            available_models = get_available_models(api_key) if api_key else []
             default_index = 0
-            for i, m in enumerate(available_models):
-                if "gemini-1.5-flash" in m:
-                    default_index = i
-                    break
+            if available_models:
+                for i, m in enumerate(available_models):
+                    if "gemini-1.5-flash" in m:
+                        default_index = i
+                        break
             model_name = st.selectbox(
                 "Select Gemini Model",
                 available_models,
                 index=default_index,
-                help="Dynamically fetched models available for your API key."
+                help="Dynamically fetched models available for your API key. If empty, check your API key."
             )
 
     # Main area
-    uploaded_file = st.file_uploader(
-        "📂 Upload Document (JPG/PNG/PDF)", 
-        type=["jpg", "jpeg", "png", "pdf"]
-    )
     with st.container(border=True):
         uploaded_file = st.file_uploader(
             "📂 Upload Document (JPG/PNG/PDF)", 
@@ -348,11 +314,6 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("👁️ Document Preview")
-            if uploaded_file.type == "application/pdf":
-                st.info("📄 PDF uploaded. Preview is unavailable, but it will be processed during extraction.")
-            else:
-                st.image(uploaded_file, use_container_width=True)
             with st.container(border=True):
                 st.subheader("👁️ Document Preview")
                 if uploaded_file.type == "application/pdf":
@@ -361,26 +322,6 @@ def main():
                     st.image(uploaded_file, use_container_width=True)
 
         with col2:
-            st.subheader("📊 Extracted Data")
-            if st.button("🚀 Extract Information", type="primary", use_container_width=True):
-                if not api_key:
-                    st.error("⚠️ Please provide a Gemini API Key in the sidebar.")
-                    return
-                
-                with st.spinner("⏳ Extracting via Gemini OCR/LLM... 🪄✨"):
-                    try:
-                        # Initialize DB and Extractor
-                        db_manager = DatabaseManager()
-                        extractor = ExtractorFactory.create(doc_type, api_key, model_name=model_name)
-                        
-                        # Process Document
-                        mime_type = uploaded_file.type
-                        file_bytes = uploaded_file.read()
-                        raw_json_str = extractor.extract(file_bytes, mime_type)
-                        
-                        # Clean output just in case LLM added formatting
-                        cleaned_json_str = raw_json_str.replace("```json", "").replace("```", "").strip()
-                        extracted_dict = json.loads(cleaned_json_str)
             with st.container(border=True):
                 st.subheader("📊 Extracted Data")
                 if st.button("🚀 Extract Information", type="primary", use_container_width=True):
@@ -403,12 +344,6 @@ def main():
                             cleaned_json_str = raw_json_str.replace("```json", "").replace("```", "").strip()
                             extracted_dict = json.loads(cleaned_json_str)
 
-                        # Save to Database
-                        db_manager.save_record(
-                            doc_type=doc_type, 
-                            file_name=uploaded_file.name, 
-                            extracted_json=json.dumps(extracted_dict)
-                        )
                             # Save to Database
                             db_manager.save_record(
                                 doc_type=doc_type, 
@@ -416,19 +351,11 @@ def main():
                                 extracted_json=json.dumps(extracted_dict)
                             )
 
-                        # Render Results
-                        st.balloons()
-                        st.success("🎉 Extraction and Database Storage Successful! 🥳")
-                        st.json(extracted_dict)
                             # Render Results
                             st.balloons()
                             st.success("🎉 Extraction and Database Storage Successful! 🥳")
                             st.json(extracted_dict)
 
-                    except json.JSONDecodeError:
-                        st.error(f"Failed to parse output as JSON. Raw output:\\n{raw_json_str}")
-                    except Exception as e:
-                        st.error(f"An error occurred: {str(e)}")
                         except json.JSONDecodeError:
                             st.error(f"Failed to parse output as JSON. Raw output:\\n{raw_json_str}")
                         except Exception as e:
@@ -530,7 +457,6 @@ Your browser should automatically open a new tab with the running application.
 *(This is where you can add your screenshots of the application in action.)*
 """
 }
-"""}
 
 # Create all files in the current working directory
 for filename, content in project_files.items():
